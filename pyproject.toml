@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "personal-agent"
+version = "0.1.0"
+description = "Personal daily-planning agent: collects Gmail/Calendar/Tasks, plans the day via an LLM, and writes to a rolling Google Doc."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-api-python-client>=2.130.0",
+    "google-auth>=2.30.0",
+    "google-auth-oauthlib>=1.2.0",
+    "pydantic-settings>=2.3.0",
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.1",
+    "tzdata>=2024.1",
+    "anthropic>=0.40.0",
+    "openai>=1.40.0",
+    "groq>=0.11.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

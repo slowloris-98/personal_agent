@@ -1,0 +1,14 @@
+google-api-python-client>=2.130.0
+google-auth>=2.30.0
+google-auth-oauthlib>=1.2.0
+pydantic-settings>=2.3.0
+python-dotenv>=1.0.1
+pyyaml>=6.0.1
+
+# IANA timezone database — required for zoneinfo on Windows (no system tz db)
+tzdata>=2024.1
+
+# LLM providers — only the one selected in config.yaml is actually imported/used
+anthropic>=0.40.0
+openai>=1.40.0
+groq>=0.11.0
