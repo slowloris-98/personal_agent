@@ -13,7 +13,11 @@ accounts:
 # What to collect each morning.
 collect:
   email_query: "newer_than:1d"   # Gmail search syntax. e.g. "is:unread newer_than:1d"
-  max_emails_per_account: 30
+  # Relevance filter appended to every email query (daily run AND `seed` backfill).
+  # "category:primary" keeps only the Primary tab (drops Promotions/Social/Updates/Forums).
+  # Tune as needed, e.g. "category:primary is:important" or "-in:promotions -in:social".
+  email_filter: "category:primary"
+  max_emails_per_account: 40     # cap per account per day (fewer is fine on quiet days)
   calendar_id: primary           # calendar to read on the primary account
   timezone: "America/Los_Angeles"   # used for "today" bounds and RFC3339 timestamps
 
@@ -30,3 +34,13 @@ llm:
   # For anthropic: claude-opus-4-8 ; openai: gpt-4o ; groq: llama-3.3-70b-versatile
   model: claude-opus-4-8
   max_tokens: 4000
+
+# Persistent memory across days (Cognee knowledge graph). Lets the agent reason
+# about commitments and threads spanning weeks/months. Powered by OpenAI, so it
+# needs OPENAI_API_KEY in .env — it does NOT use the claude_code CLI. Data is
+# stored locally under memory_store/. Leave enabled: false to run without memory.
+memory:
+  enabled: false
+  provider: openai
+  dataset_name: personal_agent
+  retrieval_limit: 2000   # max chars of past context injected into the daily plan

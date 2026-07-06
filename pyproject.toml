@@ -19,6 +19,8 @@ dependencies = [
     "anthropic>=0.40.0",
     "openai>=1.40.0",
     "groq>=0.11.0",
+    # Memory layer (local knowledge-graph memory); heavy (LanceDB + Kuzu).
+    "cognee>=1.2.0",
 ]
 
 [project.optional-dependencies]

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CREDENTIALS_DIR = PROJECT_ROOT / "credentials"
 LOGS_DIR = PROJECT_ROOT / "logs"
+MEMORY_DIR = PROJECT_ROOT / "memory_store"
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config.yaml"
 
 
@@ -24,6 +25,7 @@ class Account:
 @dataclass
 class CollectConfig:
     email_query: str = "newer_than:1d"
+    email_filter: str = ""          # Gmail operators appended to scope to relevant mail (e.g. "category:primary")
     max_emails_per_account: int = 30
     calendar_id: str = "primary"
     timezone: str = "UTC"
@@ -42,11 +44,21 @@ class LLMConfig:
 
 
 @dataclass
+class MemoryConfig:
+    """Persistent knowledge-graph memory (Cognee). Powered by OpenAI."""
+    enabled: bool = False
+    provider: str = "openai"        # Cognee LLM/embedding backend
+    dataset_name: str = "personal_agent"
+    retrieval_limit: int = 2000     # max chars of retrieved context injected into the plan
+
+
+@dataclass
 class Config:
     accounts: list[Account] = field(default_factory=list)
     collect: CollectConfig = field(default_factory=CollectConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
+    memory: MemoryConfig = field(default_factory=MemoryConfig)
 
     @property
     def primary_account(self) -> Account:
@@ -88,5 +100,8 @@ def load_config(path: Path | None = None) -> Config:
     collect = CollectConfig(**{**CollectConfig().__dict__, **raw.get("collect", {})})
     output = OutputConfig(**{**OutputConfig().__dict__, **raw.get("output", {})})
     llm = LLMConfig(**{**LLMConfig().__dict__, **raw.get("llm", {})})
+    memory = MemoryConfig(**{**MemoryConfig().__dict__, **raw.get("memory", {})})
 
-    return Config(accounts=accounts, collect=collect, output=output, llm=llm)
+    return Config(
+        accounts=accounts, collect=collect, output=output, llm=llm, memory=memory
+    )

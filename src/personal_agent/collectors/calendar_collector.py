@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, time
+from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
 from ..config import CollectConfig
@@ -12,21 +12,24 @@ from ..models import CalendarEvent
 log = logging.getLogger(__name__)
 
 
-def _day_bounds(tz_name: str) -> tuple[str, str]:
-    """RFC3339 start/end of *today* in the configured timezone (with offset)."""
+def _day_bounds(tz_name: str, on_date: date | None = None) -> tuple[str, str]:
+    """RFC3339 start/end of a day (default *today*) in the configured timezone."""
     tz = ZoneInfo(tz_name)
-    now = datetime.now(tz)
-    start = datetime.combine(now.date(), time.min, tzinfo=tz)
-    end = datetime.combine(now.date(), time.max, tzinfo=tz)
+    day = on_date or datetime.now(tz).date()
+    start = datetime.combine(day, time.min, tzinfo=tz)
+    end = datetime.combine(day, time.max, tzinfo=tz)
     return start.isoformat(), end.isoformat()
 
 
 def collect(
-    primary_label: str, collect_cfg: CollectConfig, warnings: list[str]
+    primary_label: str,
+    collect_cfg: CollectConfig,
+    warnings: list[str],
+    on_date: date | None = None,
 ) -> list[CalendarEvent]:
     try:
         service = get_service(primary_label, "calendar", "v3")
-        time_min, time_max = _day_bounds(collect_cfg.timezone)
+        time_min, time_max = _day_bounds(collect_cfg.timezone, on_date)
         resp = (
             service.events()
             .list(
@@ -52,7 +55,8 @@ def collect(
                     all_day=all_day,
                 )
             )
-        log.info("Calendar[%s]: %d events today", primary_label, len(events))
+        day_label = (on_date or "today")
+        log.info("Calendar[%s]: %d events (%s)", primary_label, len(events), day_label)
         return events
     except Exception as exc:  # noqa: BLE001
         msg = f"Calendar collection failed: {exc}"

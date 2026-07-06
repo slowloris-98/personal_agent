@@ -9,6 +9,9 @@ client_secret*.json
 logs/
 *.log
 
+# Memory layer — local Cognee knowledge-graph data (may contain personal data)
+memory_store/
+
 # Python
 __pycache__/
 *.py[cod]

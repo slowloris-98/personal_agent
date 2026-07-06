@@ -38,3 +38,4 @@ class ContextBundle:
     events: list[CalendarEvent] = field(default_factory=list)
     tasks: list[TaskItem] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)  # partial-failure notes
+    memory: str = ""                                    # relevant past context retrieved from the memory layer

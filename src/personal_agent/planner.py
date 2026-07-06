@@ -16,6 +16,9 @@ Do this:
    not double-book. Respect existing events.
 3. Merge in the open tasks, prioritizing by due date and importance.
 4. Flag anything genuinely urgent or time-sensitive.
+5. If a "RELEVANT MEMORY / PAST CONTEXT" section is present, use it to connect
+   today to earlier commitments, decisions, and threads from past days/weeks —
+   but never invent items; today's calendar, tasks, and emails are ground truth.
 
 Output GitHub-flavored Markdown with exactly these sections, and nothing before them:
 - "### Top priorities" — 3-5 bullets, most important first.
@@ -32,6 +35,11 @@ def build_user_prompt(bundle: ContextBundle) -> str:
     lines: list[str] = []
     lines.append(f"DATE: {bundle.date} ({bundle.timezone})")
     lines.append("")
+
+    if bundle.memory.strip():
+        lines.append("=== RELEVANT MEMORY / PAST CONTEXT ===")
+        lines.append(bundle.memory.strip())
+        lines.append("")
 
     lines.append("=== TODAY'S CALENDAR EVENTS ===")
     if bundle.events:

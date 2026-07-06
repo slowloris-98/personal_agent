@@ -23,6 +23,11 @@ def _header(headers: list[dict], name: str) -> str:
     return ""
 
 
+def _compose_query(base: str, email_filter: str) -> str:
+    """Combine a base Gmail query with the relevance filter (either may be empty)."""
+    return " ".join(part for part in (base.strip(), email_filter.strip()) if part)
+
+
 def collect_for_account(label: str, query: str, max_results: int) -> list[EmailItem]:
     """Fetch up to `max_results` messages matching `query` for one account."""
     service = get_service(label, "gmail", "v1")
@@ -60,17 +65,25 @@ def collect_for_account(label: str, query: str, max_results: int) -> list[EmailI
 
 
 def collect(
-    accounts: list[Account], collect_cfg: CollectConfig, warnings: list[str]
+    accounts: list[Account],
+    collect_cfg: CollectConfig,
+    warnings: list[str],
+    query: str | None = None,
+    max_results: int | None = None,
 ) -> list[EmailItem]:
-    """Fetch emails across all accounts; failures are recorded, not fatal."""
+    """Fetch emails across all accounts; failures are recorded, not fatal.
+
+    When `query` is None, the daily query (`email_query` + `email_filter`) is used.
+    The `seed` backfill passes an explicit per-day query (already filter-composed).
+    """
+    effective_query = query or _compose_query(
+        collect_cfg.email_query, collect_cfg.email_filter
+    )
+    cap = max_results if max_results is not None else collect_cfg.max_emails_per_account
     all_items: list[EmailItem] = []
     for acct in accounts:
         try:
-            items = collect_for_account(
-                acct.label,
-                collect_cfg.email_query,
-                collect_cfg.max_emails_per_account,
-            )
+            items = collect_for_account(acct.label, effective_query, cap)
             log.info("Gmail[%s]: %d messages", acct.label, len(items))
             all_items.extend(items)
         except Exception as exc:  # noqa: BLE001 — continue-on-partial-failure
