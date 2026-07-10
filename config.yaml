@@ -25,17 +25,21 @@ collect:
 # Where the daily plans are written.
 #   target: google_docs | notion
 #
-# google_docs: a new Google Doc is auto-created each week inside a Drive folder
-#   the agent creates and owns (one page per day, newest on top). Just pick a
-#   folder_name; the agent makes the folder on first run.
+# google_docs: one Google Doc per day is created from the plan Markdown via
+#   Drive's native Markdown importer, dropped into a Drive folder. By default the
+#   agent creates and owns a folder named folder_name (works with the narrow
+#   drive.file scope). Optionally set folder_id to a specific Drive folder id to
+#   write there instead — but under drive.file that folder must be one this app
+#   created or was explicitly granted, otherwise leave folder_id blank.
 #
 # notion: plans go under a "Daily Planning" page you create in Notion and share
 #   with your integration — one weekly subpage, then one subpage per day (the
 #   day's Markdown is dumped in directly). Put your integration token in .env as
 #   NOTION_API_KEY, and the shared page's id in notion_root_page_id below.
 output:
-  target: notion
+  target: google_docs
   folder_name: "Daily Plans"
+  folder_id: ""                  # optional: specific Drive folder id (see note above)
   notion_root_page_id: "39956cf2624e8062b41dc31493ce1f94"
 
 # LLM provider. Swappable: claude_code | anthropic | openai | groq

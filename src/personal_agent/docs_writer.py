@@ -1,26 +1,32 @@
-"""Write the day's plan into that week's Google Doc, formatted, one page per day.
+"""Write the day's plan into Google Docs: one Doc per day, native Markdown import.
 
-The agent owns a Drive folder (by name) and auto-creates a new Doc in it each ISO
-week. Each run prepends the day at the top of the current week's Doc with native
-Docs formatting (headings, bold, bullets) and a page break so every day gets its
-own page. See `markdown_to_docs` for the Markdown -> Docs request translation.
+Each run hands the LLM's plan Markdown to Drive's native Markdown importer, which
+creates a fully-formatted Google Doc (headings, bold, bullets, tables, links) — no
+bespoke Markdown->Docs translation on our side. The daily Doc lands in a Drive
+folder: by default one the agent creates and owns (by name), or a specific folder
+you point at with `folder_id`.
+
+    Daily Plans/                 (folder_name, created and owned by the agent)
+    ├── 2026-07-06 — Daily Plan  (one Doc per day; a re-run replaces that day's Doc)
+    └── ...
 
 Everything uses the narrow `drive.file` scope, which only exposes files this app
-created — hence the agent creates and owns the folder rather than pointing at a
-pre-existing one.
+created. That's why the default folder is one the agent makes rather than a
+pre-existing one; a configured `folder_id` only works if the app can access it.
 """
 from __future__ import annotations
 
 import logging
-from datetime import date as date_cls
 
-from . import markdown_to_docs
+from googleapiclient.http import MediaInMemoryUpload
+
 from .google_auth import get_service
 
 log = logging.getLogger(__name__)
 
 _DOC_MIME = "application/vnd.google-apps.document"
 _FOLDER_MIME = "application/vnd.google-apps.folder"
+_MARKDOWN_MIME = "text/markdown"
 
 
 def _escape(value: str) -> str:
@@ -28,10 +34,9 @@ def _escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
-def _week_title(date: str) -> str:
-    """Deterministic Doc title for the ISO week containing `date` (YYYY-MM-DD)."""
-    iso = date_cls.fromisoformat(date).isocalendar()
-    return f"Daily Plans — {iso[0]}-W{iso[1]:02d}"
+def _daily_title(date: str) -> str:
+    """Deterministic Doc title for a day's plan, e.g. '2026-07-06 — Daily Plan'."""
+    return f"{date} — Daily Plan"
 
 
 def _find_file(drive, query: str) -> str | None:
@@ -66,57 +71,55 @@ def get_or_create_folder(drive, folder_name: str) -> str:
     return created["id"]
 
 
-def get_or_create_week_doc(label: str, folder_name: str, date: str) -> str:
-    """Return the id of this week's plan Doc, creating the folder/Doc as needed."""
+def _resolve_folder(drive, folder_id: str, folder_name: str) -> str:
+    """Return the target folder id: an explicit `folder_id`, else one by name.
+
+    A configured `folder_id` wins; otherwise the agent creates/owns `folder_name`.
+    """
+    if folder_id:
+        return folder_id
     if not folder_name:
-        raise ValueError("output.folder_name is not set in config.yaml.")
+        raise ValueError(
+            "Set output.folder_id or output.folder_name in config.yaml for google_docs."
+        )
+    return get_or_create_folder(drive, folder_name)
 
+
+def write_day_doc(
+    label: str, folder_id: str, folder_name: str, date: str, plan_markdown: str
+) -> str:
+    """Create (or replace) the day's plan Doc from Markdown via Drive's importer.
+
+    Uploads the plan Markdown with source mimeType text/markdown and target Google
+    Doc mimeType, so Drive converts it natively. A re-run for the same day replaces
+    that day's Doc content instead of creating a duplicate. Returns the Doc id.
+    """
     drive = get_service(label, "drive", "v3")
-    folder_id = get_or_create_folder(drive, folder_name)
+    folder = _resolve_folder(drive, folder_id, folder_name)
 
-    title = _week_title(date)
+    title = _daily_title(date)
+    media = MediaInMemoryUpload(
+        plan_markdown.encode("utf-8"), mimetype=_MARKDOWN_MIME, resumable=False
+    )
+
     query = (
-        f"name = '{_escape(title)}' and '{folder_id}' in parents "
+        f"name = '{_escape(title)}' and '{folder}' in parents "
         f"and mimeType = '{_DOC_MIME}' and trashed = false"
     )
     existing = _find_file(drive, query)
     if existing:
+        drive.files().update(fileId=existing, media_body=media).execute()
+        log.info("Replaced plan doc '%s' (%s)", title, existing)
         return existing
 
     created = (
         drive.files()
         .create(
-            body={"name": title, "mimeType": _DOC_MIME, "parents": [folder_id]},
+            body={"name": title, "mimeType": _DOC_MIME, "parents": [folder]},
+            media_body=media,
             fields="id",
         )
         .execute()
     )
-    log.info("Created weekly plan doc '%s' (%s)", title, created["id"])
+    log.info("Created plan doc '%s' (%s)", title, created["id"])
     return created["id"]
-
-
-def _has_content(docs_service, doc_id: str) -> bool:
-    """True if the doc already has body content below (i.e. we need a page break)."""
-    doc = docs_service.documents().get(documentId=doc_id, fields="body/content").execute()
-    content = doc.get("body", {}).get("content", [])
-    # An empty doc is a single empty paragraph ending at index 2.
-    return bool(content) and content[-1].get("endIndex", 1) > 2
-
-
-def prepend_plan(primary_label: str, folder_name: str, date: str, plan_markdown: str) -> None:
-    """Insert a dated, formatted plan block at the top of this week's Doc.
-
-    Newest plan ends up on top; earlier days sit below on their own pages.
-    """
-    doc_id = get_or_create_week_doc(primary_label, folder_name, date)
-    docs = get_service(primary_label, "docs", "v1")
-
-    add_page_break = _has_content(docs, doc_id)
-    requests = markdown_to_docs.build_day_requests(
-        date=date,
-        plan_markdown=plan_markdown,
-        insert_index=1,  # start of the document body
-        add_page_break=add_page_break,
-    )
-    docs.documents().batchUpdate(documentId=doc_id, body={"requests": requests}).execute()
-    log.info("Prepended plan for %s to weekly doc %s", date, doc_id)

@@ -38,12 +38,17 @@ class CollectConfig:
 
 @dataclass
 class OutputConfig:
-    # Where plans are written: "google_docs" (rolling weekly Doc) or "notion"
-    # (root page -> weekly subpages -> per-day subpages).
+    # Where plans are written: "google_docs" (one Doc per day, native Markdown
+    # import) or "notion" (root page -> weekly subpages -> per-day subpages).
     target: str = "google_docs"
     # google_docs: name of the Drive folder (created and owned by the agent)
-    # that holds the auto-created weekly plan Docs.
+    # that holds the auto-created per-day plan Docs.
     folder_name: str = "Daily Plans"
+    # google_docs (optional): id of a specific Drive folder to write into. When
+    # set it takes precedence over folder_name. Under the narrow drive.file scope
+    # this only works for a folder this app created (or was explicitly granted);
+    # leave blank to let the agent create/own the folder_name folder instead.
+    folder_id: str = ""
     # notion: id of the "Daily Planning" page shared with the integration; new
     # weekly/day subpages are created under it. The API token lives in .env.
     notion_root_page_id: str = ""
