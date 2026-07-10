@@ -8,6 +8,9 @@ pyyaml>=6.0.1
 # IANA timezone database — required for zoneinfo on Windows (no system tz db)
 tzdata>=2024.1
 
+# Notion output target — direct HTTP calls to the Markdown Content API
+requests>=2.31.0
+
 # LLM providers — only the one selected in config.yaml is actually imported/used
 anthropic>=0.40.0
 openai>=1.40.0

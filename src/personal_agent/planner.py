@@ -4,7 +4,7 @@ from __future__ import annotations
 from .llm.base import LLMProvider
 from .models import ContextBundle
 
-SYSTEM_PROMPT = """\
+_SYSTEM_PROMPT_TEMPLATE = """\
 You are a personal executive-assistant agent. Given a person's emails from the \
 last 24 hours (across several accounts), today's calendar events, and their open \
 to-do tasks, produce a focused, realistic plan for the day.
@@ -17,15 +17,35 @@ Do this:
 3. Merge in the open tasks, prioritizing by due date and importance.
 4. Flag anything genuinely urgent or time-sensitive.
 
-Output GitHub-flavored Markdown with exactly these sections, and nothing before them:
+Output GitHub-flavored Markdown with exactly these sections, and nothing before them.
+Use "###" headings, "-" bullets, and "**bold**" for emphasis.{tables_note}
 - "### Top priorities" — 3-5 bullets, most important first.
-- "### Time-blocked schedule" — a table or list mapping time ranges to activities,
-  anchored around the real calendar events.
+- "### Time-blocked schedule" — {schedule_hint}
 - "### Action items from email" — bullets, each noting the source account.
 - "### Watch / urgent" — anything needing attention today; write "Nothing urgent." if none.
 
 Be concise and concrete. Do not invent events or emails that were not provided.\
 """
+
+_NO_TABLES_NOTE = " Do NOT use Markdown tables (they don't render in the output document)."
+_TABLES_OK_NOTE = " You may use Markdown tables where they make the plan clearer."
+
+_SCHEDULE_HINT_BULLETS = (
+    "a bulleted list mapping time ranges to activities,\n"
+    '  anchored around the real calendar events, e.g. "- 09:00–10:00 — Deep work: <task>".'
+)
+_SCHEDULE_HINT_TABLE = (
+    "a Markdown table (or bulleted list) mapping time\n"
+    "  ranges to activities, anchored around the real calendar events."
+)
+
+
+def build_system_prompt(allow_tables: bool) -> str:
+    """The system prompt, allowing or forbidding Markdown tables by output target."""
+    return _SYSTEM_PROMPT_TEMPLATE.format(
+        tables_note=_TABLES_OK_NOTE if allow_tables else _NO_TABLES_NOTE,
+        schedule_hint=_SCHEDULE_HINT_TABLE if allow_tables else _SCHEDULE_HINT_BULLETS,
+    )
 
 
 def build_user_prompt(bundle: ContextBundle) -> str:
@@ -73,7 +93,14 @@ def build_user_prompt(bundle: ContextBundle) -> str:
     return "\n".join(lines)
 
 
-def generate_plan(bundle: ContextBundle, provider: LLMProvider) -> str:
-    """Build the prompt, call the LLM, return Markdown plan text."""
+def generate_plan(
+    bundle: ContextBundle, provider: LLMProvider, allow_tables: bool = False
+) -> str:
+    """Build the prompt, call the LLM, return Markdown plan text.
+
+    `allow_tables` lets the LLM use Markdown tables — enabled for output targets
+    that render them (Notion), off for Google Docs.
+    """
+    system_prompt = build_system_prompt(allow_tables)
     user_prompt = build_user_prompt(bundle)
-    return provider.generate(SYSTEM_PROMPT, user_prompt)
+    return provider.generate(system_prompt, user_prompt)

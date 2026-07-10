@@ -16,6 +16,7 @@ from .config import LOGS_DIR, load_config
 from .docs_writer import prepend_plan
 from .llm import get_provider
 from .models import ContextBundle
+from .notion_writer import write_plan
 from .planner import generate_plan
 
 log = logging.getLogger("personal_agent")
@@ -76,7 +77,9 @@ def run(dry_run: bool = False) -> int:
         max_tokens=config.llm.max_tokens,
         api_key=config.api_key_for_provider(),
     )
-    plan = generate_plan(bundle, provider)
+    # Notion renders Markdown tables natively; the Google Docs path does not.
+    allow_tables = config.output.target == "notion"
+    plan = generate_plan(bundle, provider, allow_tables=allow_tables)
 
     if dry_run:
         print("\n" + "=" * 60)
@@ -85,9 +88,23 @@ def run(dry_run: bool = False) -> int:
         print(plan)
         return 0
 
-    prepend_plan(config.primary_account.label, config.output.doc_id, bundle.date, plan)
-    log.info("Done. Plan written to Google Doc.")
+    _write_plan(config, bundle.date, plan)
     return 0
+
+
+def _write_plan(config, date: str, plan: str) -> None:
+    """Dispatch the finished plan to the configured output target."""
+    target = config.output.target
+    if target == "google_docs":
+        prepend_plan(config.primary_account.label, config.output.folder_name, date, plan)
+        log.info("Done. Plan written to Google Doc.")
+    elif target == "notion":
+        write_plan(config.notion_token, config.output.notion_root_page_id, date, plan)
+        log.info("Done. Plan written to Notion.")
+    else:
+        raise ValueError(
+            f"Unknown output.target '{target}'. Choose one of: google_docs, notion."
+        )
 
 
 def main() -> int:

@@ -1,14 +1,19 @@
 # Personal Daily-Planning Agent — configuration
 # Secrets (LLM API keys) live in .env, NOT here.
 
-# Gmail accounts to read email from. `label` is used to name the cached token file
-# (credentials/token_<label>.json) and to group emails in the plan.
-# The account with `primary: true` owns Calendar, Tasks, and the output Doc.
+# Gmail accounts to read email from. `label` is the stable key for the cached
+# token file (credentials/token_<label>.json) — don't rename it once authorized.
+# `name` (optional) is how the account is labelled in the plan; it defaults to
+# `label` if omitted. The account with `primary: true` owns Calendar, Tasks, and
+# the output Doc.
 accounts:
   - label: acct1
+    name: Personal
     primary: true
   - label: acct2
+    name: Work
   - label: acct3
+    name: College
 
 # What to collect each morning.
 collect:
@@ -17,11 +22,21 @@ collect:
   calendar_id: primary           # calendar to read on the primary account
   timezone: "America/Los_Angeles"   # used for "today" bounds and RFC3339 timestamps
 
-# Where the daily plan is written.
+# Where the daily plans are written.
+#   target: google_docs | notion
+#
+# google_docs: a new Google Doc is auto-created each week inside a Drive folder
+#   the agent creates and owns (one page per day, newest on top). Just pick a
+#   folder_name; the agent makes the folder on first run.
+#
+# notion: plans go under a "Daily Planning" page you create in Notion and share
+#   with your integration — one weekly subpage, then one subpage per day (the
+#   day's Markdown is dumped in directly). Put your integration token in .env as
+#   NOTION_API_KEY, and the shared page's id in notion_root_page_id below.
 output:
-  # Create one Google Doc, open it, copy the ID from the URL:
-  #   https://docs.google.com/document/d/<THIS_IS_THE_DOC_ID>/edit
-  doc_id: "1jOi2FZouzgU-nUYkzIIAci-Dhzjh-SeUE42b2vjjuBQ"
+  target: notion
+  folder_name: "Daily Plans"
+  notion_root_page_id: "39956cf2624e8062b41dc31493ce1f94"
 
 # LLM provider. Swappable: claude_code | anthropic | openai | groq
 llm:

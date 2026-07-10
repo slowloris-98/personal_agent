@@ -19,6 +19,13 @@ DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config.yaml"
 class Account:
     label: str
     primary: bool = False
+    # How this account is labelled in the plan (e.g. "Personal", "Work"). The
+    # `label` stays the stable token-file key; `name` is display-only.
+    name: str = ""
+
+    @property
+    def display_name(self) -> str:
+        return self.name or self.label
 
 
 @dataclass
@@ -31,7 +38,15 @@ class CollectConfig:
 
 @dataclass
 class OutputConfig:
-    doc_id: str = ""
+    # Where plans are written: "google_docs" (rolling weekly Doc) or "notion"
+    # (root page -> weekly subpages -> per-day subpages).
+    target: str = "google_docs"
+    # google_docs: name of the Drive folder (created and owned by the agent)
+    # that holds the auto-created weekly plan Docs.
+    folder_name: str = "Daily Plans"
+    # notion: id of the "Daily Planning" page shared with the integration; new
+    # weekly/day subpages are created under it. The API token lives in .env.
+    notion_root_page_id: str = ""
 
 
 @dataclass
@@ -69,6 +84,11 @@ class Config:
         }.get(self.llm.provider)
         return os.getenv(env_var) if env_var else None
 
+    @property
+    def notion_token(self) -> str | None:
+        """The Notion integration token from the environment (NOTION_API_KEY)."""
+        return os.getenv("NOTION_API_KEY")
+
 
 def load_config(path: Path | None = None) -> Config:
     """Load .env (secrets) and config.yaml (structure) into a Config."""
@@ -82,7 +102,11 @@ def load_config(path: Path | None = None) -> Config:
         raw = yaml.safe_load(fh) or {}
 
     accounts = [
-        Account(label=a["label"], primary=bool(a.get("primary", False)))
+        Account(
+            label=a["label"],
+            primary=bool(a.get("primary", False)),
+            name=a.get("name", ""),
+        )
         for a in raw.get("accounts", [])
     ]
     collect = CollectConfig(**{**CollectConfig().__dict__, **raw.get("collect", {})})

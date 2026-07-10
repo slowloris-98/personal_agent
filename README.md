@@ -78,6 +78,25 @@ the LLM `provider`/`model`, and `output.doc_id`.
 - **`claude_code`** (default) needs no key — it shells out to your local `claude` CLI.
 - For `anthropic` / `openai` / `groq`: copy `.env.example` to `.env` and set the matching key.
 
+### Output to Notion (alternative to Google Docs)
+
+Instead of a rolling Google Doc, plans can go into Notion as a page tree:
+**Daily Planning → one subpage per ISO week → one subpage per day** (the day's
+Markdown is dumped straight in via Notion's Markdown Content API). One-time setup:
+
+1. Create an **internal integration** at <https://www.notion.com/my-integrations>,
+   copy its token, and add it to `.env` as `NOTION_API_KEY`.
+2. Create a page named **"Daily Planning"** in Notion, then **share it with the
+   integration** (page ⋯ menu → *Connections* → your integration). Integrations
+   only see pages explicitly shared with them.
+3. Copy that page's id from its URL (the 32-char id after the title) into
+   `config.yaml` → `output.notion_root_page_id`, and set `output.target: notion`.
+
+This path is write-only: created page ids are cached in
+`credentials/notion_state.json` so re-runs update the day's page instead of
+duplicating it. Because Notion renders Markdown tables, the planner is allowed to
+use tables when this target is selected.
+
 ## Run
 
 ```powershell
