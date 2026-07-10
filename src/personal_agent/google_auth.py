@@ -21,6 +21,9 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar.events.readonly",
     "https://www.googleapis.com/auth/tasks.readonly",
     "https://www.googleapis.com/auth/documents",
+    # drive.file: create the weekly Doc inside the output folder and find it
+    # again later. Only exposes files this app creates.
+    "https://www.googleapis.com/auth/drive.file",
 ]
 
 CLIENT_SECRET_PATH = CREDENTIALS_DIR / "client_secret.json"

@@ -23,8 +23,15 @@ def _header(headers: list[dict], name: str) -> str:
     return ""
 
 
-def collect_for_account(label: str, query: str, max_results: int) -> list[EmailItem]:
-    """Fetch up to `max_results` messages matching `query` for one account."""
+def collect_for_account(
+    label: str, query: str, max_results: int, display_name: str | None = None
+) -> list[EmailItem]:
+    """Fetch up to `max_results` messages matching `query` for one account.
+
+    `label` is the token/auth key; `display_name` is how the account is tagged in
+    the plan (defaults to `label`).
+    """
+    account = display_name or label
     service = get_service(label, "gmail", "v1")
     listed = (
         service.users()
@@ -49,7 +56,7 @@ def collect_for_account(label: str, query: str, max_results: int) -> list[EmailI
         headers = detail.get("payload", {}).get("headers", [])
         items.append(
             EmailItem(
-                account=label,
+                account=account,
                 sender=_header(headers, "From"),
                 subject=_header(headers, "Subject"),
                 snippet=detail.get("snippet", ""),
@@ -70,8 +77,9 @@ def collect(
                 acct.label,
                 collect_cfg.email_query,
                 collect_cfg.max_emails_per_account,
+                display_name=acct.display_name,
             )
-            log.info("Gmail[%s]: %d messages", acct.label, len(items))
+            log.info("Gmail[%s]: %d messages", acct.display_name, len(items))
             all_items.extend(items)
         except Exception as exc:  # noqa: BLE001 — continue-on-partial-failure
             msg = f"Gmail collection failed for account '{acct.label}': {exc}"
