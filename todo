@@ -1,10 +1,23 @@
+- communication layer
+- increase the email ingestion amount
 - check for sent emails also incase something needs following up.
-- improve the output maybe move to notion if required and it supports md file.
-- maybe create a new tab for each day in google doc
+
+- memory layer
+- mcp for integrations?
+- do something about the overwrite
+
+- should be able to fetch links if available
+- identify previous 5 days plans and before making new one
+- decide a standard structure for the plan so each day is uniform
+- should not talk about emails like verification codes, they are useless and maybe a security hassle.
+
+
 - introduce some mcp functionalities so that the agent can take some actions as well.
+
+
+
 
 - ship to all the family members.
 - integrate with current projects like the song recommender, hireshire.
 
 
-- should be able to fetch links if available

@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 from .collectors import calendar_collector, gmail_collector, tasks_collector
 from .config import LOGS_DIR, load_config
-from .docs_writer import prepend_plan
+from .docs_writer import write_day_doc
 from .llm import get_provider
 from .models import ContextBundle
 from .notion_writer import write_plan
@@ -77,8 +77,9 @@ def run(dry_run: bool = False) -> int:
         max_tokens=config.llm.max_tokens,
         api_key=config.api_key_for_provider(),
     )
-    # Notion renders Markdown tables natively; the Google Docs path does not.
-    allow_tables = config.output.target == "notion"
+    # Both targets render Markdown tables natively (Notion's API and Google Drive's
+    # Markdown importer), so tables are fine either way.
+    allow_tables = config.output.target in {"notion", "google_docs"}
     plan = generate_plan(bundle, provider, allow_tables=allow_tables)
 
     if dry_run:
@@ -96,7 +97,13 @@ def _write_plan(config, date: str, plan: str) -> None:
     """Dispatch the finished plan to the configured output target."""
     target = config.output.target
     if target == "google_docs":
-        prepend_plan(config.primary_account.label, config.output.folder_name, date, plan)
+        write_day_doc(
+            config.primary_account.label,
+            config.output.folder_id,
+            config.output.folder_name,
+            date,
+            plan,
+        )
         log.info("Done. Plan written to Google Doc.")
     elif target == "notion":
         write_plan(config.notion_token, config.output.notion_root_page_id, date, plan)
