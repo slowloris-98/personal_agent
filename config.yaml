@@ -37,7 +37,7 @@ collect:
 #   day's Markdown is dumped in directly). Put your integration token in .env as
 #   NOTION_API_KEY, and the shared page's id in notion_root_page_id below.
 output:
-  target: google_docs
+  target: notion
   folder_name: "Daily Plans"
   folder_id: ""                  # optional: specific Drive folder id (see note above)
   notion_root_page_id: "39956cf2624e8062b41dc31493ce1f94"
@@ -47,5 +47,5 @@ llm:
   provider: claude_code
   # model is ignored for claude_code (it uses your CLI's configured model).
   # For anthropic: claude-opus-4-8 ; openai: gpt-4o ; groq: llama-3.3-70b-versatile
-  model: claude-opus-4-8
+  model: claude-sonnet-5
   max_tokens: 4000

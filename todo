@@ -1,9 +1,11 @@
 - communication layer
+- increase the email ingestion amount
+- check for sent emails also incase something needs following up.
+
 - memory layer
 - mcp for integrations?
-- do somrthing about the overwrite
+- do something about the overwrite
 
-- check for sent emails also incase something needs following up.
 - should be able to fetch links if available
 - identify previous 5 days plans and before making new one
 - decide a standard structure for the plan so each day is uniform
