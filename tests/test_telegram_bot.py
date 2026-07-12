@@ -102,6 +102,30 @@ class _Ok:
         pass
 
 
+class _HTTPError(Exception):
+    pass
+
+
+class MarkdownRejectingSession:
+    """Rejects (HTTP 400) any send that carries parse_mode; accepts plain text."""
+
+    def __init__(self):
+        self.posts = []
+
+    def post(self, url, json=None, timeout=None):
+        self.posts.append(json)
+        return _MaybeReject("parse_mode" in json)
+
+
+class _MaybeReject:
+    def __init__(self, reject):
+        self._reject = reject
+
+    def raise_for_status(self):
+        if self._reject:
+            raise tb.requests.HTTPError("400 Bad Request")
+
+
 def test_split_short_message_single_chunk():
     assert tb._split("hello", 4000) == ["hello"]
 
@@ -118,5 +142,46 @@ def test_send_message_chunks_long_text():
     session = FakeSession()
     client = tb.TelegramClient("tok", session=session)
     client.send_message(111, "x" * 9000)
-    assert len(session.posts) == 3               # 9000 / 4000 -> 3 chunks
+    assert len(session.posts) == 3               # 9000 / 3500 -> 3 chunks
     assert all(p["chat_id"] == 111 for p in session.posts)
+
+
+def test_send_message_applies_markdownv2(monkeypatch):
+    monkeypatch.setattr(tb, "telegramify_markdown", _FakeMd("*escaped*"))
+    session = FakeSession()
+    client = tb.TelegramClient("tok", session=session)
+    client.send_message(111, "**hi**")
+    assert len(session.posts) == 1
+    assert session.posts[0]["parse_mode"] == "MarkdownV2"
+    assert session.posts[0]["text"] == "*escaped*"   # converted, not raw "**hi**"
+
+
+def test_send_message_falls_back_to_plain_on_http_error(monkeypatch):
+    monkeypatch.setattr(tb, "telegramify_markdown", _FakeMd("*escaped*"))
+    session = MarkdownRejectingSession()
+    client = tb.TelegramClient("tok", session=session)
+    client.send_message(111, "**hi**")
+    assert len(session.posts) == 2                   # MarkdownV2 rejected, retried plain
+    assert "parse_mode" in session.posts[0]
+    assert "parse_mode" not in session.posts[1]
+    assert session.posts[1]["text"] == "**hi**"      # original text delivered
+
+
+def test_send_message_plain_when_lib_absent(monkeypatch):
+    monkeypatch.setattr(tb, "telegramify_markdown", None)
+    session = FakeSession()
+    client = tb.TelegramClient("tok", session=session)
+    client.send_message(111, "**hi**")
+    assert len(session.posts) == 1
+    assert "parse_mode" not in session.posts[0]
+    assert session.posts[0]["text"] == "**hi**"
+
+
+class _FakeMd:
+    """Stand-in for the telegramify_markdown module."""
+
+    def __init__(self, converted):
+        self._converted = converted
+
+    def markdownify(self, text):
+        return self._converted

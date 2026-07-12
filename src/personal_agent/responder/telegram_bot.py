@@ -21,6 +21,11 @@ from dataclasses import dataclass, field
 
 import requests
 
+try:
+    import telegramify_markdown
+except ImportError:  # lib not installed on this device -> plain-text only
+    telegramify_markdown = None
+
 from .. import store
 from ..config import Config, load_config
 from ..llm import get_provider
@@ -30,7 +35,8 @@ from .answer import answer_question
 log = logging.getLogger(__name__)
 
 _API = "https://api.telegram.org"
-_MAX_MSG = 4000          # Telegram hard-caps messages at 4096 chars; leave headroom
+_MAX_MSG = 3500          # split raw text here; MarkdownV2 escaping grows length before the 4096 cap
+_MAX_MSG_HARD = 4096     # Telegram's hard per-message limit (post-conversion)
 _POLL_TIMEOUT = 30       # long-poll seconds
 _SWITCHABLE = {"anthropic", "openai", "ollama", "groq", "claude_code"}
 
@@ -63,15 +69,41 @@ class TelegramClient:
         return resp.json().get("result", [])
 
     def send_message(self, chat_id: int, text: str) -> None:
-        # Plain text (no parse_mode): the LLM emits GitHub-flavored Markdown, which
-        # doesn't map cleanly to Telegram's dialects — plain text always delivers.
+        # The LLM emits GitHub-flavored Markdown. We translate each chunk to Telegram
+        # MarkdownV2 so it renders; if conversion or the formatted send fails, we resend
+        # that chunk as plain text so a reply is never lost.
         for chunk in _split(text, _MAX_MSG):
-            resp = self._session.post(
-                f"{self._base}/sendMessage",
-                json={"chat_id": chat_id, "text": chunk},
-                timeout=30,
-            )
+            if not self._send_chunk(chat_id, chunk, use_md=True):
+                self._send_chunk(chat_id, chunk, use_md=False)
+
+    def _send_chunk(self, chat_id: int, text: str, use_md: bool) -> bool:
+        """Send one chunk. Returns False (without raising) when a MarkdownV2 attempt
+        fails, signalling the caller to retry as plain text. A failed plain-text send
+        raises, matching the previous guaranteed-delivery contract."""
+        payload = {"chat_id": chat_id, "text": text}
+        if use_md:
+            if telegramify_markdown is None:
+                return False
+            try:
+                converted = telegramify_markdown.markdownify(text)
+            except Exception:  # noqa: BLE001 — any conversion error -> fall back to plain
+                return False
+            if len(converted) > _MAX_MSG_HARD:  # escaping pushed it past the hard cap
+                return False
+            payload["text"] = converted
+            payload["parse_mode"] = "MarkdownV2"
+        resp = self._session.post(
+            f"{self._base}/sendMessage",
+            json=payload,
+            timeout=30,
+        )
+        try:
             resp.raise_for_status()
+        except requests.HTTPError:
+            if use_md:  # bad MarkdownV2 (e.g. 400) -> let caller retry plain
+                return False
+            raise
+        return True
 
 
 def _split(text: str, limit: int) -> list[str]:

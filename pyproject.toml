@@ -32,6 +32,7 @@ dev = [
 responder = [
     "fastapi>=0.110.0",
     "uvicorn>=0.29.0",
+    "telegramify-markdown>=1.0.0",   # GFM -> Telegram MarkdownV2 for bot replies
 ]
 
 [tool.setuptools.packages.find]
