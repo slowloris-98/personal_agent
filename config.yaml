@@ -60,10 +60,10 @@ llm:
 #   - the phone uses `db_path`, `retention_days`, `provider`/`model`,
 #     `allowed_chat_ids`, plus TELEGRAM_BOT_TOKEN + INGEST_TOKEN in .env.
 responder:
-  enabled: false
+  enabled: true
   ingest_host: ""              # PC -> phone push target, e.g. "phone-ts-name:8000"
   db_path: "data/agent.db"     # phone-local SQLite (source of truth)
   retention_days: 60           # emails older than this are pruned on the phone
-  provider: anthropic          # answer LLM: anthropic | openai | ollama (switchable)
-  model: claude-haiku-4-5-20251001
+  provider: openai          # answer LLM: anthropic | openai | ollama (switchable)
+  model: gpt-5.4-mini
   allowed_chat_ids: [7038212187]         # your Telegram chat id(s); empty = allow anyone (unsafe)
