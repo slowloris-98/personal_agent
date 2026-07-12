@@ -66,4 +66,4 @@ responder:
   retention_days: 60           # emails older than this are pruned on the phone
   provider: anthropic          # answer LLM: anthropic | openai | ollama (switchable)
   model: claude-haiku-4-5-20251001
-  allowed_chat_ids: []         # your Telegram chat id(s); empty = allow anyone (unsafe)
+  allowed_chat_ids: [7038212187]         # your Telegram chat id(s); empty = allow anyone (unsafe)
