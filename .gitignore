@@ -9,6 +9,12 @@ client_secret*.json
 logs/
 *.log
 
+# Responder store & pushed snapshots (rebuildable; may contain email content)
+data/
+*.db
+*.db-wal
+*.db-shm
+
 # Python
 __pycache__/
 *.py[cod]

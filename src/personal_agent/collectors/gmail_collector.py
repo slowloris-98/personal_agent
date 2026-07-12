@@ -61,6 +61,7 @@ def collect_for_account(
                 subject=_header(headers, "Subject"),
                 snippet=detail.get("snippet", ""),
                 received_at=_header(headers, "Date"),
+                gmail_id=detail.get("id", msg["id"]),
             )
         )
     return items

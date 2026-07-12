@@ -90,6 +90,7 @@ def run(dry_run: bool = False) -> int:
         return 0
 
     _write_plan(config, bundle.date, plan)
+    _push_snapshot(config, bundle, plan)
     return 0
 
 
@@ -112,6 +113,25 @@ def _write_plan(config, date: str, plan: str) -> None:
         raise ValueError(
             f"Unknown output.target '{target}'. Choose one of: google_docs, notion."
         )
+
+
+def _push_snapshot(config, bundle: ContextBundle, plan: str) -> None:
+    """Push the day's plan + emails to the 24/7 responder, if enabled.
+
+    Best-effort: never fails the daily run (the plan is already written above).
+    """
+    if not config.responder.enabled:
+        return
+    from .sync_client import push_snapshot
+
+    push_snapshot(
+        config.responder.ingest_host,
+        config.ingest_token,
+        bundle.date,
+        plan,
+        bundle.emails,
+        bundle,
+    )
 
 
 def main() -> int:

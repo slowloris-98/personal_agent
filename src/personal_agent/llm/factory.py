@@ -9,7 +9,7 @@ def get_provider(
 ) -> LLMProvider:
     """Return an LLMProvider instance for `name`.
 
-    Supported: claude_code | anthropic | openai | groq
+    Supported: claude_code | anthropic | openai | groq | ollama
     """
     name = (name or "").lower()
     if name == "claude_code":
@@ -28,7 +28,11 @@ def get_provider(
         from .groq_provider import GroqProvider
 
         return GroqProvider(model=model, max_tokens=max_tokens, api_key=api_key)
+    if name == "ollama":
+        from .ollama_provider import OllamaProvider
+
+        return OllamaProvider(model=model, max_tokens=max_tokens, api_key=api_key)
     raise ValueError(
         f"Unknown LLM provider '{name}'. "
-        "Choose one of: claude_code, anthropic, openai, groq."
+        "Choose one of: claude_code, anthropic, openai, groq, ollama."
     )
