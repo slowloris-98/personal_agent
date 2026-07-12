@@ -11,7 +11,7 @@ class OpenAIProvider(LLMProvider):
         client = OpenAI(api_key=self.api_key)
         resp = client.chat.completions.create(
             model=self.model,
-            max_tokens=self.max_tokens,
+            max_completion_tokens=self.max_tokens,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CREDENTIALS_DIR = PROJECT_ROOT / "credentials"
 LOGS_DIR = PROJECT_ROOT / "logs"
+DATA_DIR = PROJECT_ROOT / "data"
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config.yaml"
 
 
@@ -62,11 +63,30 @@ class LLMConfig:
 
 
 @dataclass
+class ResponderConfig:
+    """The 24/7 communication layer: the PC pushes here, the phone answers from it.
+
+    Off by default so existing runs are unaffected. When `enabled`, the daily run
+    pushes each day's plan + emails to the phone's ingest endpoint (`ingest_host`)
+    over Tailscale. `provider`/`model` pick the (switchable) LLM the phone uses to
+    answer — independent of the heavier `llm` provider used to generate the plan.
+    """
+    enabled: bool = False
+    ingest_host: str = ""            # PC -> phone push target, e.g. "phone-ts:8000"
+    db_path: str = "data/agent.db"   # phone-local SQLite (source of truth)
+    retention_days: int = 60
+    provider: str = "anthropic"      # anthropic | openai | ollama  (switchable)
+    model: str = "claude-haiku-4-5-20251001"
+    allowed_chat_ids: list[int] = field(default_factory=list)
+
+
+@dataclass
 class Config:
     accounts: list[Account] = field(default_factory=list)
     collect: CollectConfig = field(default_factory=CollectConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
+    responder: ResponderConfig = field(default_factory=ResponderConfig)
 
     @property
     def primary_account(self) -> Account:
@@ -77,22 +97,34 @@ class Config:
             return self.accounts[0]
         raise ValueError("No accounts configured in config.yaml")
 
-    def api_key_for_provider(self) -> str | None:
-        """Return the API key for the configured provider from the environment.
+    def api_key_for_provider(self, provider: str | None = None) -> str | None:
+        """Return the API key for `provider` (defaults to the daily `llm` provider).
 
-        Returns None for providers that need no key (e.g. claude_code).
+        Pass an explicit provider (e.g. the responder's) to resolve its key. Returns
+        None for providers that need no key (e.g. claude_code, ollama).
         """
+        provider = provider or self.llm.provider
         env_var = {
             "anthropic": "ANTHROPIC_API_KEY",
             "openai": "OPENAI_API_KEY",
             "groq": "GROQ_API_KEY",
-        }.get(self.llm.provider)
+        }.get(provider)
         return os.getenv(env_var) if env_var else None
 
     @property
     def notion_token(self) -> str | None:
         """The Notion integration token from the environment (NOTION_API_KEY)."""
         return os.getenv("NOTION_API_KEY")
+
+    @property
+    def ingest_token(self) -> str | None:
+        """Shared PC<->phone bearer secret for the ingest endpoint (INGEST_TOKEN)."""
+        return os.getenv("INGEST_TOKEN")
+
+    @property
+    def telegram_bot_token(self) -> str | None:
+        """The Telegram bot token from the environment (TELEGRAM_BOT_TOKEN)."""
+        return os.getenv("TELEGRAM_BOT_TOKEN")
 
 
 def load_config(path: Path | None = None) -> Config:
@@ -117,5 +149,10 @@ def load_config(path: Path | None = None) -> Config:
     collect = CollectConfig(**{**CollectConfig().__dict__, **raw.get("collect", {})})
     output = OutputConfig(**{**OutputConfig().__dict__, **raw.get("output", {})})
     llm = LLMConfig(**{**LLMConfig().__dict__, **raw.get("llm", {})})
+    responder = ResponderConfig(
+        **{**ResponderConfig().__dict__, **raw.get("responder", {})}
+    )
 
-    return Config(accounts=accounts, collect=collect, output=output, llm=llm)
+    return Config(
+        accounts=accounts, collect=collect, output=output, llm=llm, responder=responder
+    )

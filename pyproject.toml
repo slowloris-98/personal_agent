@@ -25,6 +25,14 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "fastapi>=0.110.0",
+    "httpx>=0.27.0",       # FastAPI TestClient dependency
+]
+# Installed only on the always-on responder device (the phone/Termux), not the PC.
+responder = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "telegramify-markdown>=1.0.0",   # GFM -> Telegram MarkdownV2 for bot replies
 ]
 
 [tool.setuptools.packages.find]

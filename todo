@@ -1,6 +1,6 @@
-- communication layer
 - increase the email ingestion amount
 - check for sent emails also incase something needs following up.
+- correct the email focus
 
 - memory layer
 - mcp for integrations?

@@ -11,6 +11,7 @@ class EmailItem:
     subject: str
     snippet: str
     received_at: str      # human/ISO-ish string from the Date header
+    gmail_id: str = ""    # Gmail message id; stable dedup key for the responder store
 
 
 @dataclass

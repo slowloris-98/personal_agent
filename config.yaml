@@ -49,3 +49,21 @@ llm:
   # For anthropic: claude-opus-4-8 ; openai: gpt-4o ; groq: llama-3.3-70b-versatile
   model: claude-sonnet-5
   max_tokens: 4000
+
+# 24/7 communication layer (Telegram). Off by default — when enabled, the daily
+# run also pushes each day's plan + emails to the always-on device (phone/Termux)
+# over Tailscale, and a Telegram bot on that device answers your questions from a
+# local SQLite store. See CLAUDE.md ("Communication layer") for setup.
+#
+# This block is read by BOTH machines:
+#   - the PC uses `ingest_host` (where to push) and INGEST_TOKEN in .env.
+#   - the phone uses `db_path`, `retention_days`, `provider`/`model`,
+#     `allowed_chat_ids`, plus TELEGRAM_BOT_TOKEN + INGEST_TOKEN in .env.
+responder:
+  enabled: true
+  ingest_host: "100.109.148.78:8000"              # PC -> phone push target, e.g. "phone-ts-name:8000"
+  db_path: "data/agent.db"     # phone-local SQLite (source of truth)
+  retention_days: 60           # emails older than this are pruned on the phone
+  provider: openai          # answer LLM: anthropic | openai | ollama (switchable)
+  model: gpt-5.4-mini
+  allowed_chat_ids: [7038212187]         # your Telegram chat id(s); empty = allow anyone (unsafe)
