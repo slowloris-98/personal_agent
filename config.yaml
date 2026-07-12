@@ -61,7 +61,7 @@ llm:
 #     `allowed_chat_ids`, plus TELEGRAM_BOT_TOKEN + INGEST_TOKEN in .env.
 responder:
   enabled: true
-  ingest_host: ""              # PC -> phone push target, e.g. "phone-ts-name:8000"
+  ingest_host: "100.109.148.78:8000"              # PC -> phone push target, e.g. "phone-ts-name:8000"
   db_path: "data/agent.db"     # phone-local SQLite (source of truth)
   retention_days: 60           # emails older than this are pruned on the phone
   provider: openai          # answer LLM: anthropic | openai | ollama (switchable)
