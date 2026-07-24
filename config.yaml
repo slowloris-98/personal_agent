@@ -8,10 +8,10 @@
 # the output Doc.
 accounts:
   - label: acct1
-    name: Personal
+    name: Work
     primary: true
   - label: acct2
-    name: Work
+    name: Personal
   - label: acct3
     name: College
 

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Program Files/Tailscale/**)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Tailscale\\\\tailscale.exe\" status)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Tailscale\\\\tailscale.exe\" ping -c 3 100.109.148.78)",
+      "Read(//d/Atreya/College/Projects/personal_agent/data/snapshots/**)"
+    ]
+  }
+}
