@@ -2,6 +2,9 @@
 - check for sent emails also incase something needs following up.
 - correct the email focus
 
+- previous message history
+- enable message streaming 
+
 - memory layer
 - mcp for integrations?
 - do something about the overwrite
@@ -11,11 +14,7 @@
 - decide a standard structure for the plan so each day is uniform
 - should not talk about emails like verification codes, they are useless and maybe a security hassle.
 
-
 - introduce some mcp functionalities so that the agent can take some actions as well.
-
-
-
 
 - ship to all the family members.
 - integrate with current projects like the song recommender, hireshire.
